@@ -1,7 +1,7 @@
 import pygame
 import sys
 from config.config_loader import game_config
-from game.world import IsometricMap
+from game.world.map import IsometricMap
 from parsers.pal_parser import PalParser
 from parsers.shp_parser import ShpParser
 from parsers.mix_parser import MixParser
@@ -16,21 +16,17 @@ class EngineCore:
         self.fps = win_cfg["fps"]
         self.running = True
 
-        # === 核心加载阶段 ===
         print("Loading Assets...")
-        # 1. 加载调色板 (如果没有真实文件，自动生成一个随机彩色的假调色板用于测试)
         
-        mix1 = MixParser("assets/ra2.mix")
-        mix2 = MixParser("assets/ra2md.mix")
-        mix3 = MixParser("assets/language.mix")
-        mix4 = MixParser("assets/langmd.mix")
+        cache_mix = MixParser("assets/mix/ra2.mix")
         
-        mix1.extract("iso.pal", "assets/iso.pal")
-        self.pal = PalParser("assets/iso.pal") 
-        if not self.pal.colors:
-            self.pal.colors = [(i, (i*5)%255, 100) for i in range(256)]
-            self.pal.colors[0] = (0, 0, 0) # 索引0设为透明色
+        pal_terrain = PalParser()
+        pal_terrain.load("assets/isotem.pal")
+        
+        #print(f"成功在纯内存中解析了地形调色板！颜色数量: {len(pal_terrain.colors)}")
 
+        self.pal = pal_terrain
+        
         # 2. 解析 SHP 序列
         # 注意：这里需要你手动放置提取出的文件，或者暂时使用代码里内置的 dummy 占位符
         self.shp_tile = ShpParser("assets/clear1.shp", self.pal.colors) # 原版草地

@@ -1,10 +1,21 @@
 import struct
+import io
 
 class PalParser:
-    def __init__(self, filepath=None):
+    def __init__(self, data_bytes=None):
         self.colors = []
-        if filepath:
-            self.load(filepath)
+        if data_bytes:
+            self.load_from_bytes(data_bytes)
+
+    def load_from_bytes(self, data_bytes):
+        self.colors = []
+        stream = io.BytesIO(data_bytes)
+        pal_data = stream.read(768)
+        
+        for i in range(256):
+            r, g, b = pal_data[i*3], pal_data[i*3+1], pal_data[i*3+2]
+            # 6-bit 转 8-bit
+            self.colors.append((r << 2, g << 2, b << 2))
 
     def load(self, filepath):
         self.colors = []

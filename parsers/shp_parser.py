@@ -1,18 +1,49 @@
 import struct
+import io
 import pygame
-import os
 
 class ShpParser:
-    def __init__(self, filepath, pal_colors):
-        self.filepath = filepath
-        self.pal_colors = pal_colors 
+    def __init__(self, data_bytes, pal_colors):
+        self.pal_colors = pal_colors
         self.frames = []
         
-        if os.path.exists(filepath):
-            self._parse()
+        if data_bytes:
+            self._parse_from_bytes(data_bytes)
         else:
-            print(f"Warning: {filepath} not found. Generating dummy asset.")
             self._generate_dummy()
+
+    def _parse_from_bytes(self, data_bytes):
+        stream = io.BytesIO(data_bytes)
+        
+        header = stream.read(14)
+        _, global_width, global_height, num_frames = struct.unpack('<HHHH', header[:8])
+        
+        frame_headers = []
+        for _ in range(num_frames):
+            f_head = f.read(24)
+            
+            fx, fy, fw, fh, comp = struct.unpack('<HHHHB', f_head[:9])
+            data_offset = struct.unpack('<I', f_head[20:24])[0]
+            frame_headers.append((fx, fy, fw, fh, comp, data_offset))
+            
+        for fx, fy, fw, fh, comp, offset in frame_headers:
+            if fw == 0 or fh == 0:
+                continue
+            
+            f.seek(offset)
+            raw_data = f.read() 
+            pixel_indices = self._decode_format80(raw_data, fw * fh)
+            
+            surface = pygame.Surface((fw, fh), pygame.SRCALPHA)
+            for y in range(fh):
+                for x in range(fw):
+                    idx = pixel_indices[y * fw + x]
+                    if idx != 0: 
+                        color = self.pal_colors[idx]
+                        surface.set_at((x, y), color)
+            
+            self.frames.append(surface)
+        print(f"Successfully loaded SHP: {self.filepath} ({len(self.frames)} frames)")
 
     def _parse(self):
         with open(self.filepath, 'rb') as f:
@@ -79,5 +110,5 @@ class ShpParser:
 
     def _generate_dummy(self):
         dummy = pygame.Surface((60, 60), pygame.SRCALPHA)
-        pygame.draw.circle(dummy, (255, 0, 0), (30, 30), 20) # 画个红球代替动员兵
+        pygame.draw.circle(dummy, (255, 0, 0), (30, 30), 20)
         self.frames.append(dummy)
