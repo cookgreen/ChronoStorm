@@ -2,27 +2,53 @@ import pygame
 import sys
 from config.config_loader import game_config
 from game.world import IsometricMap
+from parsers.pal_parser import PalParser
+from parsers.shp_parser import ShpParser
+from parsers.mix_parser import MixParser
 
 class EngineCore:
     def __init__(self):
         pygame.init()
         win_cfg = game_config.settings["window"]
         self.screen = pygame.display.set_mode((win_cfg["width"], win_cfg["height"]))
-        pygame.display.set_caption(win_cfg["title"])
+        pygame.display.set_caption("ChronoStorm Engine")
         self.clock = pygame.time.Clock()
         self.fps = win_cfg["fps"]
         self.running = True
 
-        # 初始化游戏地图
-        # 将网格偏移到屏幕中心偏左的位置，给右侧 UI 留出空间
-        map_offset_x = win_cfg["width"] // 2 - 100
-        self.game_world = IsometricMap(rows=20, cols=20, offset_x=map_offset_x, offset_y=100)
-
-        # 模拟侧边栏 UI 的碰撞盒
-        self.sidebar_rect = pygame.Rect(win_cfg["width"] - 200, 0, 200, win_cfg["height"])
+        # === 核心加载阶段 ===
+        print("Loading Assets...")
+        # 1. 加载调色板 (如果没有真实文件，自动生成一个随机彩色的假调色板用于测试)
         
-        # 用于调试的字体
-        self.font = pygame.font.SysFont(None, 24)
+        mix1 = MixParser("assets/ra2.mix")
+        mix2 = MixParser("assets/ra2md.mix")
+        mix3 = MixParser("assets/language.mix")
+        mix4 = MixParser("assets/langmd.mix")
+        
+        mix1.extract("iso.pal", "assets/iso.pal")
+        self.pal = PalParser("assets/iso.pal") 
+        if not self.pal.colors:
+            self.pal.colors = [(i, (i*5)%255, 100) for i in range(256)]
+            self.pal.colors[0] = (0, 0, 0) # 索引0设为透明色
+
+        # 2. 解析 SHP 序列
+        # 注意：这里需要你手动放置提取出的文件，或者暂时使用代码里内置的 dummy 占位符
+        self.shp_tile = ShpParser("assets/clear1.shp", self.pal.colors) # 原版草地
+        self.shp_conscript = ShpParser("assets/e1.shp", self.pal.colors) # 原版动员兵 (e1)
+
+        # 3. 初始化世界地图，注入资源
+        map_offset_x = win_cfg["width"] // 2 - 100
+        self.game_world = IsometricMap(
+            rows=20, cols=20, 
+            tile_shp=self.shp_tile, 
+            unit_shp=self.shp_conscript,
+            offset_x=map_offset_x, offset_y=150
+        )
+
+        self.sidebar_rect = pygame.Rect(win_cfg["width"] - 200, 0, 200, win_cfg["height"])
+
+    # handle_events, update, draw, run 等方法保持上一版原样即可...
+    # (省略以节省空间，直接使用之前 core.py 里的逻辑)
 
     def handle_events(self):
         """集中处理事件，并计算 UI 阻断"""
