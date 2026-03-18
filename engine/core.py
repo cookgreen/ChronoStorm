@@ -1,6 +1,10 @@
 import pygame
+import os
 import sys
+import ra2mix
 from config.config_loader import game_config
+from game.world.world import World
+from game.entities.unit import Unit
 from game.world.map import IsometricMap
 from parsers.pal_parser import PalParser
 from parsers.shp_parser import ShpParser
@@ -15,36 +19,46 @@ class EngineCore:
         self.clock = pygame.time.Clock()
         self.fps = win_cfg["fps"]
         self.running = True
+        
+        self.font = pygame.font.SysFont("arial", 18)
 
         print("Loading Assets...")
         
-        cache_mix = MixParser("assets/mix/ra2.mix")
+        mix_filepath = "assets/mix/ra2.mix" 
+        local_mix = "assets/mix/ra2.mix" 
+            
+        mix_data = MixParser(mix_filepath)
+        print(f"✅ 成功读取 MIX 包，包含 {len(mix_data)} 个文件。")
         
-        pal_terrain = PalParser()
-        pal_terrain.load("assets/isotem.pal")
         
-        #print(f"成功在纯内存中解析了地形调色板！颜色数量: {len(pal_terrain.colors)}")
+        # 2. 从字典中捞出 调色板 和 动员兵 SHP 的二进制流
+        pal_bytes = self.get_file_bytes("unittem.pal")
+        shp_bytes = self.get_file_bytes("cons.shp")
 
-        self.pal = pal_terrain
+        # 3. 喂给我们的解析器 (使用上一条回复中包含了 Format 80 解压算法的 ShpParser)
+        self.unit_pal = PalParser(pal_bytes)
+        self.conscript_assets = ShpParser(shp_bytes, self.unit_pal.colors)
         
-        # 2. 解析 SHP 序列
-        # 注意：这里需要你手动放置提取出的文件，或者暂时使用代码里内置的 dummy 占位符
-        self.shp_tile = ShpParser("assets/clear1.shp", self.pal.colors) # 原版草地
-        self.shp_conscript = ShpParser("assets/e1.shp", self.pal.colors) # 原版动员兵 (e1)
-
-        # 3. 初始化世界地图，注入资源
-        map_offset_x = win_cfg["width"] // 2 - 100
-        self.game_world = IsometricMap(
-            rows=20, cols=20, 
-            tile_shp=self.shp_tile, 
-            unit_shp=self.shp_conscript,
-            offset_x=map_offset_x, offset_y=150
+        self.game_world = World(
+            rows=15, 
+            cols=15, 
+            tile_shp=None, 
+            offset_x=400, # 根据你的屏幕宽度自行微调，让网格居中
+            offset_y=150
         )
+    
+        # 4. 动员兵空投部署！放置在网格坐标 (5, 5) 的位置
+        self.conscript = Unit(self.conscript_assets, grid_x=5, grid_y=5)
+        self.game_world.add_unit(self.conscript)
 
         self.sidebar_rect = pygame.Rect(win_cfg["width"] - 200, 0, 200, win_cfg["height"])
 
-    # handle_events, update, draw, run 等方法保持上一版原样即可...
-    # (省略以节省空间，直接使用之前 core.py 里的逻辑)
+    
+    def get_file_bytes(self, mix_data, filename):
+        for k, v in mix_data.items():
+            if k.lower() == filename.lower():
+                return v
+        raise FileNotFoundError(f"在 MIX 包中找不到文件: {filename}")
 
     def handle_events(self):
         """集中处理事件，并计算 UI 阻断"""
@@ -63,7 +77,7 @@ class EngineCore:
                         # TODO: 在这里触发你写的 VScrollLabel 或按钮的点击事件
                     else:
                         h_x, h_y = self.game_world.hovered_grid
-                        if 0 <= h_x < self.game_world.cols and 0 <= h_y < self.game_world.rows:
+                        if 0 <= h_x < self.game_world.map.cols and 0 <= h_y < self.game_world.map.rows:
                             print(f"向地图下发指令，坐标: ({h_x}, {h_y})")
 
         return mouse_pos, is_ui_hovered

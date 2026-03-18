@@ -1,2 +1,2 @@
-pip install pycryptodome
+pip install pycryptodome, ra2mix
 build-game

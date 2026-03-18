@@ -1,3 +1,4 @@
+import pygame
 from game.world.map import IsometricMap
 
 class World:
