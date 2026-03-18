@@ -84,6 +84,10 @@ class EngineCore:
         """逻辑更新"""
         # 将鼠标位置和 UI 阻断状态传递给地图
         self.game_world.update(mouse_pos, is_ui_hovered)
+        
+        # 让动员兵实时追踪鼠标
+        if not is_ui_hovered:
+            self.conscript.update(mouse_pos, self.game_world.map)
 
     def draw(self, mouse_pos):
         """画面渲染"""

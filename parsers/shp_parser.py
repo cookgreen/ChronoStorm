@@ -8,129 +8,98 @@ class ShpParser:
         self.frames = []
         if data_bytes:
             self._parse_from_bytes(data_bytes)
-        else:
-            self._generate_dummy()
 
     def _parse_from_bytes(self, data_bytes):
         stream = io.BytesIO(data_bytes)
         
+        # 1. 解析全局 Header (8 bytes)
         header = stream.read(8)
         if len(header) < 8: return
-        
-        zero, g_width, g_height, num_frames = struct.unpack('<HHHH', header)
-        if zero != 0:
-            print("❌ SHP解析失败: 这不是标准的 RA2/TS SHP 格式。")
-            return
+        reserved, g_width, g_height, num_frames = struct.unpack('<HHHH', header)
 
-        print(f"🖼️ 正在解压 SHP: 共 {num_frames} 帧, 基础尺寸 {g_width}x{g_height}")
+        print(f"🖼️ 正在按 Rust 逻辑解压 SHP: 共 {num_frames} 帧, 尺寸 {g_width}x{g_height}")
         
+        # 2. 读取所有的 Frame Header (24 bytes)
         frame_headers = []
         for _ in range(num_frames):
-            frame_headers.append(stream.read(24))
-
-        for i in range(num_frames):
-            fh = frame_headers[i]
-            
-            # 精准解析帧头
+            fh = stream.read(24)
+            # 严格按照 Rust 结构体提取
             fx, fy, fw, fh_h = struct.unpack('<HHHH', fh[0:8])
-            comp = fh[8]
-            data_offset = struct.unpack('<I', fh[20:24])[0]
-            
+            flags = fh[8]
+            # 第 20-23 字节是 offset
+            offset = struct.unpack('<I', fh[20:24])[0]
+            frame_headers.append((fx, fy, fw, fh_h, flags, offset))
+
+        # 3. 逐帧解析
+        for fx, fy, fw, fh_h, flags, offset in frame_headers:
+            # 创建底板画布 (全局宽高)
             base_surface = pygame.Surface((g_width, g_height), pygame.SRCALPHA)
             
-            if fw == 0 or fh_h == 0:
+            # 如果是空帧或者没有偏移量，直接放入空画布
+            if fw == 0 or fh_h == 0 or offset == 0:
                 self.frames.append(base_surface)
                 continue
                 
-            stream.seek(data_offset)
-            compressed_data = stream.read() 
-            expected_size = fw * fh_h
+            stream.seek(offset)
             
-            # 分发解压算法
-            if comp == 3:
-                pixel_indices = self._decompress_format80_safe(compressed_data, expected_size)
-            elif comp == 2:
-                pixel_indices = self._decompress_rle_zero_safe(compressed_data, expected_size)
+            # 判断是否压缩 (对应 Rust 的 flags & 0x02 == 0)
+            if (flags & 0x02) == 0:
+                # 未压缩：直接读取 width * height 长度的数据
+                pixel_indices = stream.read(fw * fh_h)
             else:
-                # 兜底：如果没压缩，也保证长度安全
-                pixel_indices = compressed_data[:expected_size]
-                if len(pixel_indices) < expected_size:
-                    pixel_indices += bytes(expected_size - len(pixel_indices))
+                # RLE 压缩：调用翻译自 Rust 的解压函数
+                pixel_indices = self._decompress_rle_data(stream, fw, fh_h)
             
-            # 安全渲染到 Surface
+            # 4. 渲染像素
             frame_surf = pygame.Surface((fw, fh_h), pygame.SRCALPHA)
             for y in range(fh_h):
                 for x in range(fw):
-                    idx = pixel_indices[y * fw + x]
-                    if idx != 0: 
-                        frame_surf.set_at((x, y), self.pal_colors[idx])
-                        
+                    # 确保不越界
+                    if y * fw + x < len(pixel_indices):
+                        idx = pixel_indices[y * fw + x]
+                        if idx != 0: # 0x00 是透明色
+                            frame_surf.set_at((x, y), self.pal_colors[idx])
+                            
+            # 拼合偏移量
             base_surface.blit(frame_surf, (fx, fy))
             self.frames.append(base_surface)
 
-    def _decompress_format80_safe(self, src, expected_size):
-        """真正的 LCW 算法，加入了绝对安全的越界保护"""
-        dst = bytearray(expected_size)
-        sp = dp = 0
+    def _decompress_rle_data(self, stream, frame_width, frame_height):
+        """完全按照 Rust 源码 1:1 翻译的按行 RLE 解压算法"""
+        decompressed_data = bytearray()
         
-        while sp < len(src) and dp < expected_size:
-            cmd = src[sp]
-            sp += 1
+        for _ in range(frame_height):
+            line_buffer = bytearray()
             
-            if cmd == 0x80: 
+            # 读取该行压缩后的总长度 (2 bytes)
+            row_length_bytes = stream.read(2)
+            if len(row_length_bytes) < 2:
                 break
-            elif (cmd & 0x80) == 0: 
-                count = cmd
-                if count == 0: continue
-                # 安全的字节拷贝，防止切片缩小数组
-                for _ in range(count):
-                    if sp < len(src) and dp < expected_size:
-                        dst[dp] = src[sp]
-                        dp += 1
-                        sp += 1
-            elif (cmd & 0x40) == 0: 
-                count = (cmd & 0x3F) + 3
-                if sp >= len(src): break
-                offset = src[sp]
-                sp += 1
-                pos = dp - offset
-                for _ in range(count):
-                    if pos >= 0 and dp < expected_size:
-                        dst[dp] = dst[pos]
-                    if dp < expected_size: dp += 1
-                    pos += 1
-            else: 
-                count = (cmd & 0x3F) + 3
-                if sp + 1 >= len(src): break
-                offset = struct.unpack('<H', src[sp:sp+2])[0]
-                sp += 2
-                pos = dp - offset
-                for _ in range(count):
-                    if pos >= 0 and dp < expected_size:
-                        dst[dp] = dst[pos]
-                    if dp < expected_size: dp += 1
-                    pos += 1
-        return dst
-
-    def _decompress_rle_zero_safe(self, src, expected_size):
-        """Compression 2: RLEZero，加入安全保护"""
-        dst = bytearray(expected_size)
-        sp = dp = 0
-        while sp < len(src) and dp < expected_size:
-            v = src[sp]
-            sp += 1
-            if v == 0:
-                if sp < len(src):
-                    count = src[sp]
-                    sp += 1
-                    dp += count # 遇到0直接跳跃，保持透明
-            else:
-                if dp < expected_size:
-                    dst[dp] = v
-                    dp += 1
-        return dst
-
-    def _generate_dummy(self):
-        dummy = pygame.Surface((60, 60), pygame.SRCALPHA)
-        pygame.draw.circle(dummy, (255, 0, 0), (30, 30), 20)
-        self.frames.append(dummy)
+            row_length = struct.unpack('<H', row_length_bytes)[0]
+            
+            # 已经读取了两个字节的行长度
+            current_byte_index = 2
+            
+            while current_byte_index < row_length:
+                # Python 读单个 byte 取 [0] 就是整数
+                control_byte = stream.read(1)[0]
+                current_byte_index += 1
+                
+                if control_byte == 0x00:
+                    # 0x00 代表透明，接下来一个字节是透明像素的个数
+                    transparent_count = stream.read(1)[0]
+                    current_byte_index += 1
+                    line_buffer.extend(b'\x00' * transparent_count)
+                else:
+                    line_buffer.append(control_byte)
+            
+            # Westwood 抠门优化：补齐不足 frame_width 的末尾透明像素
+            if len(line_buffer) < frame_width:
+                line_buffer.extend(b'\x00' * (frame_width - len(line_buffer)))
+            elif len(line_buffer) > frame_width:
+                # 安全兜底，防止意外超出
+                line_buffer = line_buffer[:frame_width]
+                
+            decompressed_data.extend(line_buffer)
+            
+        return decompressed_data
