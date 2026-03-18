@@ -12,7 +12,6 @@ class Unit:
         self.pixel_offset_y = 0
 
     def draw(self, surface, map_system):
-        print(self.shp.frames)
         if not self.shp.frames: 
             return # 如果没解析出图片就跳过
             

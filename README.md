@@ -12,10 +12,10 @@
 ## 🚀 Vision & Roadmap
 The ultimate goal is to recreate the authentic 2.5D isometric experience while replacing the 20-year-old legacy codebase with flexible, Pythonic architecture—opening the doors for modern AI implementations and limitless modding capabilities.
 
-- [ ] **Phase 1: Asset Forging**
-  - [ ] `.MIX` file archive extraction.
-  - [ ] `.SHP` (Sprite) and `.VXL` (Voxel) rendering via Pygame.
-  - [ ] Palette (`.PAL`) loading and color mapping.
+- [x] **Phase 1: Asset Forging**
+  - [x] `.MIX` file archive extraction.
+  - [x] `.SHP` (Sprite) and `.VXL` (Voxel) rendering via Pygame.
+  - [x] Palette (`.PAL`) loading and color mapping.
 - [ ] **Phase 2: The Grid**
   - [ ] Map (`.MAP`) parsing and isometric grid rendering.
   - [ ] Terrain tilesets and basic world rendering.

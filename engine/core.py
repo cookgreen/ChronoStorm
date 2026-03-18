@@ -25,19 +25,17 @@ class EngineCore:
         print("Loading Assets...")
         
         mix_filepath = "assets/mix/ra2.mix" 
-        local_mix = "assets/mix/ra2.mix" 
             
-        mix_data = MixParser(mix_filepath)
-        print(f"✅ 成功读取 MIX 包，包含 {len(mix_data)} 个文件。")
+        ra2mix_data = MixParser(mix_filepath)
+        conquermix_data = MixParser(ra2mix_data.read_file("conquer.mix"))
+        cachemix_data = MixParser(ra2mix_data.read_file("cache.mix"))
         
-        
-        # 2. 从字典中捞出 调色板 和 动员兵 SHP 的二进制流
-        pal_bytes = self.get_file_bytes("unittem.pal")
-        shp_bytes = self.get_file_bytes("cons.shp")
+        pal_bytes = cachemix_data.read_file("unittem.pal")
+        shp_bytes = conquermix_data.read_file("cons.shp")
 
         # 3. 喂给我们的解析器 (使用上一条回复中包含了 Format 80 解压算法的 ShpParser)
         self.unit_pal = PalParser(pal_bytes)
-        self.conscript_assets = ShpParser(shp_bytes, self.unit_pal.colors)
+        self.conscript_shp = ShpParser(shp_bytes, self.unit_pal.colors)
         
         self.game_world = World(
             rows=15, 
@@ -48,7 +46,7 @@ class EngineCore:
         )
     
         # 4. 动员兵空投部署！放置在网格坐标 (5, 5) 的位置
-        self.conscript = Unit(self.conscript_assets, grid_x=5, grid_y=5)
+        self.conscript = Unit(self.conscript_shp, grid_x=5, grid_y=5)
         self.game_world.add_unit(self.conscript)
 
         self.sidebar_rect = pygame.Rect(win_cfg["width"] - 200, 0, 200, win_cfg["height"])

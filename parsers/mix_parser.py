@@ -4,7 +4,6 @@ import io
 import os
 
 from Crypto.Cipher import Blowfish
-from . import mix_const
 
 # 提取自 ra2mix 的核心常量
 PUBLIC_EXPONENT = 65537
@@ -12,6 +11,25 @@ PUBLIC_MODULUS = int(
     "681994811107118991598552881669230523074742337494683459234572860554038768387821"
     "901289207730765589"
 )
+
+def ra2_crc(filename: str) -> int:
+    """完美复刻 Westwood 的文件名混淆 CRC32 算法"""
+    filename_length = len(filename)
+    salt = filename_length & 0xFFFFFFFC
+    obfuscated_name = filename.upper()
+
+    if filename_length & 3:
+        obfuscated_name += chr(filename_length - salt)
+        fill_count = 3 - (filename_length & 3)
+        for _ in range(fill_count):
+            obfuscated_name += obfuscated_name[salt]
+
+    binary_data = obfuscated_name.encode()
+    crc = binascii.crc32(binary_data)
+    
+    # Python 的 crc32 返回无符号整数，必须转为 32位 有符号整数
+    (signed_crc,) = struct.unpack("=i", struct.pack("=I", crc))
+    return signed_crc
 
 class MixParser:
     def __init__(self, source):
@@ -53,10 +71,9 @@ class MixParser:
                 self._parse_unencrypted(header_size=10, count=count)
 
     def _parse_encrypted(self):
-        self.stream.seek(4) # 跳过 flags
+        self.stream.seek(4)
         encrypted_blowfish_key = self.stream.read(80)
         
-        # 1. 极其优雅的 RSA 解密 (无视对齐，直接 rstrip 清除补零，完全复刻 ra2mix)
         blocks = [encrypted_blowfish_key[i:i+40] for i in range(0, 80, 40)]
         decrypted_blowfish_key = b""
         for encrypted_block in blocks:
@@ -70,10 +87,8 @@ class MixParser:
             )
             decrypted_blowfish_key += decrypted.rstrip(b"\x00")
 
-        # 2. 回归大道至简：直接使用原生的 ECB 模式，不再画蛇添足翻转字节序！
         cipher = Blowfish.new(decrypted_blowfish_key, Blowfish.MODE_ECB)
 
-        # 3. 读取并解密 Header (获取文件数)
         self.stream.seek(84) # 4(flags) + 80(key)
         first_block = self.stream.read(8)
         decrypted_first_block = cipher.decrypt(first_block)
@@ -81,28 +96,20 @@ class MixParser:
         file_count, data_size = struct.unpack("=HI", decrypted_first_block[:6])
         print(f"🔓 MIX 破译成功！真实包含文件数: {file_count}")
 
-        # 增加一道安全防线，如果密码还是不对导致乱码，提前拦截防止 struct.error
         if file_count > 5000:
             raise ValueError(f"❌ 解密异常：解密出的文件数为 {file_count}。字典读取已被强制终止以防止内存越界。")
         
-        # 4. 精准计算解密块的 Padding (严格遵循 ra2mix 的对齐算法)
         index_len = file_count * 12
-        remaining_index_len = index_len - 6
+        
+        remaining_index_len = index_len - 2 
         padding_size = 8 - (remaining_index_len % 8)
         decrypt_size = remaining_index_len + padding_size
         
-        # 5. 解密字典并拼接
         encrypted_index_data = self.stream.read(decrypt_size)
         decrypted_index_data = cipher.decrypt(encrypted_index_data)
         
-        # 剔除尾部用于 8 字节对齐的垃圾 Padding
-        if padding_size > 0:
-            index_decrypted = decrypted_first_block[-2:] + decrypted_index_data[:-padding_size]
-        else:
-            index_decrypted = decrypted_first_block[-2:] + decrypted_index_data
+        index_decrypted = decrypted_first_block[-2:] + decrypted_index_data[:-padding_size]
         
-        # 6. 计算绝对偏移并载入 VFS
-        # 核心载荷起点 = 头(10) + 文件数*12 + RSA(80) + Blowfish填充
         body_start = 10 + (12 * file_count) + 80 + padding_size
         
         for i in range(file_count):
