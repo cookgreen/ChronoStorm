@@ -5,6 +5,9 @@
 ![Pygame Badge](https://img.shields.io/badge/Pygame-2.5+-green.svg)
 ![License Badge](https://img.shields.io/badge/License-MIT-yellow.svg)
 
+![showcase](https://github.com/user-attachments/assets/c39f29f8-4096-40b0-a9a1-953bbe62f048)
+
+
 **ChronoStorm** is an open-source, modern engine reimplementation of the classic RTS games *Command & Conquer: Red Alert 2* and *Yuri's Revenge*. Built from scratch utilizing Python and Pygame, it aims to provide a highly moddable, cross-platform foundation for isometric 2D strategy games.
 
 ## ⚠️ Important Legal Notice
