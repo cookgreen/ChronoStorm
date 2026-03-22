@@ -33,7 +33,6 @@ class EngineCore:
         pal_bytes = cachemix_data.read_file("unittem.pal")
         shp_bytes = conquermix_data.read_file("cons.shp")
 
-        # 3. 喂给我们的解析器 (使用上一条回复中包含了 Format 80 解压算法的 ShpParser)
         self.unit_pal = PalParser(pal_bytes)
         self.conscript_shp = ShpParser(shp_bytes, self.unit_pal.colors)
         
@@ -41,7 +40,7 @@ class EngineCore:
             rows=15, 
             cols=15, 
             tile_shp=None, 
-            offset_x=400, # 根据你的屏幕宽度自行微调，让网格居中
+            offset_x=400,
             offset_y=150
         )
     
