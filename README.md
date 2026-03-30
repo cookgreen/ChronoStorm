@@ -36,7 +36,7 @@ The ultimate goal is to recreate the authentic 2.5D isometric experience while r
 
 ### Installation
 ```bash
-git clone [https://github.com/YourUsername/ChronoStorm.git](https://github.com/cookgreen/ChronoStorm.git)
+git clone [https://github.com/cookgreen/ChronoStorm.git](https://github.com/cookgreen/ChronoStorm.git)
 cd ChronoStorm
 pip install -r requirements.txt
 
