@@ -5,6 +5,7 @@ import ra2mix
 from config.config_loader import game_config
 from game.world.world import World
 from game.entities.unit import Unit
+from game.entities.building import Building
 from game.world.map import IsometricMap
 from parsers.pal_parser import PalParser
 from parsers.shp_parser import ShpParser
@@ -29,12 +30,24 @@ class EngineCore:
         ra2mix_data = MixParser(mix_filepath)
         conquermix_data = MixParser(ra2mix_data.read_file("conquer.mix"))
         cachemix_data = MixParser(ra2mix_data.read_file("cache.mix"))
+        genericmix_data = MixParser(ra2mix_data.read_file("generic.mix"))
         
-        pal_bytes = cachemix_data.read_file("unittem.pal")
-        shp_bytes = conquermix_data.read_file("cons.shp")
+        unittem_pal_bytes = cachemix_data.read_file("unittem.pal")
+        isotem_pal_bytes = cachemix_data.read_file("unittem.pal")
+        cons_shp_bytes = conquermix_data.read_file("cons.shp")
+        ngpowr_shp_bytes = genericmix_data.read_file("ngpowr.shp")
+        ngcnst_shp_bytes = genericmix_data.read_file("ngcnst.shp")
+        ggcnst_shp_bytes = genericmix_data.read_file("ggcnst.shp")
+        ggrefn_shp_bytes = genericmix_data.read_file("ggrefn.shp")
 
-        self.unit_pal = PalParser(pal_bytes)
-        self.conscript_shp = ShpParser(shp_bytes, self.unit_pal.colors)
+        self.unit_pal = PalParser(unittem_pal_bytes)
+        self.conscript_shp = ShpParser(cons_shp_bytes, self.unit_pal.colors)
+
+        self.isotem_pal = PalParser(isotem_pal_bytes)
+        self.tesla_rector_shp = ShpParser(ngpowr_shp_bytes, self.isotem_pal.colors)
+        self.construction_yard_shp = ShpParser(ngcnst_shp_bytes, self.isotem_pal.colors)
+        self.allied_construction_yard_shp = ShpParser(ggcnst_shp_bytes, self.isotem_pal.colors)
+        self.allied_refinary_shp = ShpParser(ggrefn_shp_bytes, self.isotem_pal.colors)
         
         self.game_world = World(
             rows=15, 
@@ -44,9 +57,17 @@ class EngineCore:
             offset_y=150
         )
     
-        # 4. 动员兵空投部署！放置在网格坐标 (5, 5) 的位置
         self.conscript = Unit(self.conscript_shp, grid_x=5, grid_y=5)
+        self.reactor = Building(self.tesla_rector_shp, grid_x=7, grid_y=7, width_tiles=2, height_tiles=2)
+        self.construction_yard = Building(self.construction_yard_shp, grid_x=6, grid_y=12, width_tiles=3, height_tiles=3)
+        self.allied_construction_yard = Building(self.allied_construction_yard_shp, grid_x=9, grid_y=3, width_tiles=3, height_tiles=3)
+        self.allied_refinary = Building(self.allied_refinary_shp, grid_x=12, grid_y=12, width_tiles=3, height_tiles=3)
+        
         self.game_world.add_unit(self.conscript)
+        self.game_world.add_building(self.reactor)
+        self.game_world.add_building(self.construction_yard)
+        self.game_world.add_building(self.allied_construction_yard)
+        self.game_world.add_building(self.allied_refinary)
 
         self.sidebar_rect = pygame.Rect(win_cfg["width"] - 200, 0, 200, win_cfg["height"])
 
