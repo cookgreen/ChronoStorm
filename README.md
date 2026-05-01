@@ -27,6 +27,9 @@ The ultimate goal is to recreate the authentic 2.5D isometric experience while r
   - [ ] A* Pathfinding optimized for isometric tiles.
   - [ ] Classic Sidebar UI implementation.
   - [ ] Entity state machines and modern AI behavior trees.
+- [ ] **Phase 4: Integrate Large Language Model**
+  - [ ] Integrate the LLM like DeepSeek
+  - [ ] Use DeepSeek to command the enemy AI
 
 ## 🛠️ Getting Started
 
@@ -36,7 +39,7 @@ The ultimate goal is to recreate the authentic 2.5D isometric experience while r
 
 ### Installation
 ```bash
-git clone [https://github.com/cookgreen/ChronoStorm.git](https://github.com/cookgreen/ChronoStorm.git)
+git clone https://github.com/cookgreen/ChronoStorm.git
 cd ChronoStorm
 pip install -r requirements.txt
 
