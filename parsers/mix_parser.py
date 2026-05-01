@@ -13,7 +13,6 @@ PUBLIC_MODULUS = int(
 )
 
 def ra2_crc(filename: str) -> int:
-    """完美复刻 Westwood 的文件名混淆 CRC32 算法"""
     filename_length = len(filename)
     salt = filename_length & 0xFFFFFFFC
     obfuscated_name = filename.upper()
@@ -65,7 +64,7 @@ class MixParser:
             is_encrypted = (flags & 0x20000) != 0  # 真正的加密判断位！
             
             if is_encrypted:
-                print("🔒 检测到 ra2.mix 加密壳，正在启动完美破译...")
+                print("检测到 mix 加密壳，正在启动破译...")
                 self._parse_encrypted()
             else:
                 self._parse_unencrypted(header_size=10, count=count)
@@ -94,7 +93,7 @@ class MixParser:
         decrypted_first_block = cipher.decrypt(first_block)
         
         file_count, data_size = struct.unpack("=HI", decrypted_first_block[:6])
-        print(f"🔓 MIX 破译成功！真实包含文件数: {file_count}")
+        print(f"MIX 破译成功！真实包含文件数: {file_count}")
 
         if file_count > 5000:
             raise ValueError(f"❌ 解密异常：解密出的文件数为 {file_count}。字典读取已被强制终止以防止内存越界。")

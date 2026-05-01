@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UI id="sidebar_sov" name="SideBar (Soviet)" script="sidebar_sov.py">
+    <Panel name="MainSidebar" x="SCREEN_WIDTH-168" y="0" width="168" height="SCREEN_HEIGHT">
+        <Panel name="Credit" x="0" y="0" width="168" height="16" bg_image="credits.shp" >
+			<Label name="TextCredit" x="0" y="0" width="168" height="16" text="$10000" text_color="0,255,255" text_align="center" font_size="13" />
+		</Panel>
+        <Panel name="Top" x="0" y="16" width="168" height="32" bg_image="top.shp" />
+        <AnimatedPanel name="Radar" x="0" y="48" width="168" height="110" bg_image="radar.shp" />
+        <Panel name="OptButtons" x="0" y="158" width="168" height="69" bg_image="side1.shp">
+			<Button name="BtnRepair" x="32" y="8" width="52" height="32" image="repair.shp" />
+			<Button name="BtnSell" x="84" y="8" width="52" height="32" image="sell.shp" />
+		</Panel>
+        <Panel name="Bottom02" x="0" y="SCREEN_HEIGHT-15-26" width="168" height="26" bg_image="side3.shp" />
+        <Panel name="Bottom01" x="0" y="SCREEN_HEIGHT-15" width="168" height="63" bg_image="addon.shp" />
+    </Panel>
+</UI>

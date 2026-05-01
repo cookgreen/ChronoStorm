@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<UI id="debug_panel" name="Debug Panel" script="debug_panel.py">
+    <Panel name="DebugPanel" x="10" y="10" width="100" height="90" bg_color="40,40,40">
+        <Button name="BtnPowerOn" x="10" y="10" width="80" height="30" text="Power ON" />
+        <Button name="BtnPowerOff" x="10" y="50" width="80" height="30" text="Power OFF" />
+    </Panel>
+</UI>
