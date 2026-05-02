@@ -4,11 +4,12 @@
 ![Python Badge](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Pygame Badge](https://img.shields.io/badge/Pygame-2.5+-green.svg)
 ![License Badge](https://img.shields.io/badge/License-MIT-yellow.svg)
-
+  
+**ChronoStorm(C.R.S.)** is an open-source, modern engine reimplementation of the classic RTS games *Command & Conquer: Red Alert 2* and *Yuri's Revenge*. Built from scratch utilizing Python and Pygame, it aims to provide a highly moddable, cross-platform foundation for isometric 2D strategy games.  
+  
 <img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/e0e337f9-1721-4082-adfb-4673a4145b4e" />
 
 
-**ChronoStorm** is an open-source, modern engine reimplementation of the classic RTS games *Command & Conquer: Red Alert 2* and *Yuri's Revenge*. Built from scratch utilizing Python and Pygame, it aims to provide a highly moddable, cross-platform foundation for isometric 2D strategy games.
 
 ## ⚠️ Important Legal Notice
 **ChronoStorm is a game engine, NOT a full game.** This repository does not contain any original game assets, artworks, sounds, or copyrighted materials belonging to Electronic Arts. To use or test this engine, you **must** own a legal copy of *Red Alert 2 / Yuri's Revenge* and provide your own `.MIX` asset files.
@@ -25,7 +26,7 @@ The ultimate goal is to recreate the authentic 2.5D isometric experience while r
   - [ ] Terrain tilesets and basic world rendering.
 - [ ] **Phase 3: Mechanics & AI**
   - [ ] A* Pathfinding optimized for isometric tiles.
-  - [ ] Classic Sidebar UI implementation.
+  - [x] Classic Sidebar UI implementation.
   - [ ] Entity state machines and modern AI behavior trees.
 - [ ] **Phase 4: Integrate Large Language Model**
   - [ ] Integrate the LLM like DeepSeek
